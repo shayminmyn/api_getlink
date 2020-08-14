@@ -1,70 +1,76 @@
 from flask import Flask, request, jsonify, abort
 import requests
 from bs4 import BeautifulSoup
-from anticaptchaofficial.recaptchav2proxyless import *
-
+import logging
+import time
+import os
+import re
 
 app = Flask(__name__)
 
+logFileName = 'logged_{}.txt'.format(time.strftime('%d-%B-%Y(%H-%M-%S)'))
+
+logging.basicConfig(filename='logged/'+logFileName,
+                    level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 
 app.config.from_object("config.Config")
-
-cookies = None
-
-def login():
-    global cookies
-    session = requests.session()
-    url = 'https://www.freepik.com/profile/login'
-    SITE_KEY='6LfEmSMUAAAAAEDmOgt1G7o7c53duZH2xL_TXckC'
-    KEY = '352a2c20725eda726a24c0788bbc71ac'
-    solver = recaptchaV2Proxyless()
-    solver.set_verbose(1)
-    solver.set_key(app.config['KEY'])
-    solver.set_website_url(url)
-    solver.set_website_key(app.config['SITE_KEY'])
-
-    g_response = solver.solve_and_return_solution()
-    
-    username = app.config['USERNAME']
-    password = app.config['PASSWORD']
-
-    urlLogin = 'https://www.freepik.com/profile/request/login'
-    if g_response != 0:
-        login_data =  {'login_email':username, 
-                        'password':password,
-                        'token_recaptcha':g_response,
-                        'kfc': 1597044371177,'o':"aHR0cHM6Ly8=",
-                        'remember':True,
-                        'ref_landing': "",'register_callback': ""}
-        s = session.post(url, data=login_data)
-        cookies = s.cookies
-        
-    else:
-        print("task finished with error "+solver.error_code)
-        cookies = None
+num_link_got = 0
 trust_ip = app.config['TRUST_IP']
+DOWNLOAD_PATH = app.config['DOWNLOAD_PATH']
+
+file_name_requestted = []
+
+def getFile(url):
+    os.system('"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe" ' + url)
+
+
+def checkFileInQueue(file_name):
+    if file_name in file_name_requestted:
+        return True
+    else:
+        return False
+def getFileName(url):
+    regex = r'[^\/]+\_\d+\.htm$'
+    item = re.findall(regex,url)[0]
+    item = re.sub(r'\_\d+\.htm$','',item)
+    return item
 
 @app.before_request
 def limit_remote_addr():
     if request.remote_addr not in trust_ip:
         abort(403)  # Forbidden
 
+
+
 @app.route('/', methods = ['POST'])
 def getLink():
-    if cookies:
-        url = request.args['url']
-        header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}    
+    global num_link_got
+    global file_name_requestted
+    global DOWNLOAD_PATH
+    url = request.json['url']
+    file_name = getFileName(url)
+    file_name_requestted.append(file_name)
 
-        try:    
-            res = requests.get(url,headers=header,cookies=cookies)
-            soup = BeautifulSoup(res.text,'lxml')
-            link = soup.find('a',class_='download-button')['href']
-            return jsonify(link)
-        except Exception as err:
-            login()
-            print(f'ERROR: {err}') 
-        return 'ERROR TRY AGAIN'
+    header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}    
+
+    try:    
+        res = requests.get(url,headers=header)
+        soup = BeautifulSoup(res.text,'lxml')
+        link = soup.find('a',class_='download-button')['href']
+        getFile(link)
+        result = DOWNLOAD_PATH + file_name + '.zip'
+        num_link_got = num_link_got + 1
+        app.logger.info('Number link got : {}'.format(num_link_got))
+        return jsonify(url=result)
+    except Exception as err:
+        num_link_got = 0
+        # app.logger.info('Number link got : {} , Number link faild : {}'.format(num_link_got,num_link_faild))
+        app.logger.error('Get link Error')
+        abort(404)
+    return 'ERROR TRY AGAIN'
+
+
 
 if __name__ == '__main__':
-    login()
-    app.run()
+    app.run(host=app.config['MAIN_IP'])
