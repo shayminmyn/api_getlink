@@ -10,4 +10,4 @@ class Config(object):
 
     MAIN_IP = 'localhost'
 
-    DOWNLOAD_PATH = 'C:\Users\HP\Downloads\'
+    DOWNLOAD_PATH = 'C:\\Users\\HP\\Downloads\\'

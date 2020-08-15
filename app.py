@@ -27,14 +27,17 @@ def getFile(url):
 
 def checkFileInQueue(file_name):
     if file_name in file_name_requestted:
-        return True
-    else:
         return False
+    else:
+        return True
 def getFileName(url):
     regex = r'[^\/]+\_\d+\.htm$'
     item = re.findall(regex,url)[0]
     item = re.sub(r'\_\d+\.htm$','',item)
     return item
+
+def checkFileExist(link):
+    return os.path.isfile(link)
 
 @app.before_request
 def limit_remote_addr():
@@ -50,7 +53,6 @@ def getLink():
     global DOWNLOAD_PATH
     url = request.json['url']
     file_name = getFileName(url)
-    file_name_requestted.append(file_name)
 
     header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}    
 
@@ -58,11 +60,19 @@ def getLink():
         res = requests.get(url,headers=header)
         soup = BeautifulSoup(res.text,'lxml')
         link = soup.find('a',class_='download-button')['href']
-        getFile(link)
+        if checkFileInQueue(file_name):
+            file_name_requestted.append(file_name)
+            getFile(link)
         result = DOWNLOAD_PATH + file_name + '.zip'
+        while True:
+            if checkFileExist(result):
+                break
+        file_stats = os.stat(result)
+        size = file_stats.st_size
         num_link_got = num_link_got + 1
         app.logger.info('Number link got : {}'.format(num_link_got))
-        return jsonify(url=result)
+        file_name_requestted.remove(file_name)
+        return jsonify(url=result,size=size)
     except Exception as err:
         num_link_got = 0
         # app.logger.info('Number link got : {} , Number link faild : {}'.format(num_link_got,num_link_faild))
