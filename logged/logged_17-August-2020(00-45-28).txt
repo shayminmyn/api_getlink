@@ -1,5 +1,0 @@
-2020-08-17 00:45:28,186 INFO werkzeug MainThread :  * Running on http://localhost:5000/ (Press CTRL+C to quit)
-2020-08-17 00:45:35,081 INFO app Thread-1 : Number link got : 1
-2020-08-17 00:45:35,082 INFO werkzeug Thread-1 : 127.0.0.1 - - [17/Aug/2020 00:45:35] "[37mPOST / HTTP/1.1[0m" 200 -
-2020-08-17 00:45:42,397 INFO app Thread-2 : Number link got : 2
-2020-08-17 00:45:42,398 INFO werkzeug Thread-2 : 127.0.0.1 - - [17/Aug/2020 00:45:42] "[37mPOST / HTTP/1.1[0m" 200 -
