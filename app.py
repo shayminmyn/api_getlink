@@ -22,7 +22,7 @@ num_link_got = 0
 trust_ip = app.config['TRUST_IP']
 DOWNLOAD_PATH = app.config['DOWNLOAD_PATH']
 
-file_name_requestted = []
+file_name_requestted = os.listdir(DOWNLOAD_PATH)
 
 def getFile(url):
     os.system('"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe" ' + url)
@@ -63,7 +63,7 @@ def getLink():
         res = requests.get(url,headers=header)
         soup = BeautifulSoup(res.text,'lxml')
         link = soup.find('a',class_='download-button')['href']
-        if checkFileInQueue(file_name):
+        if checkFileInQueue(file_name + '.zip'):
             file_name_requestted.append(file_name)
             getFile(link)
         path = DOWNLOAD_PATH + file_name + '.zip'
