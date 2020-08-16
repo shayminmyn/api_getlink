@@ -1,0 +1,7 @@
+2020-08-17 00:37:25,584 INFO werkzeug MainThread :  * Running on http://localhost:5000/ (Press CTRL+C to quit)
+2020-08-17 00:37:34,564 INFO app Thread-1 : Number link got : 1
+2020-08-17 00:37:34,565 ERROR app Thread-1 : Get link Error
+2020-08-17 00:37:34,565 INFO werkzeug Thread-1 : 127.0.0.1 - - [17/Aug/2020 00:37:34] "[33mPOST / HTTP/1.1[0m" 404 -
+2020-08-17 00:37:49,975 INFO app Thread-2 : Number link got : 1
+2020-08-17 00:37:49,975 ERROR app Thread-2 : Get link Error
+2020-08-17 00:37:49,976 INFO werkzeug Thread-2 : 127.0.0.1 - - [17/Aug/2020 00:37:49] "[33mPOST / HTTP/1.1[0m" 404 -

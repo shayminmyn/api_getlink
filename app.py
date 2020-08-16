@@ -22,7 +22,8 @@ num_link_got = 0
 trust_ip = app.config['TRUST_IP']
 DOWNLOAD_PATH = app.config['DOWNLOAD_PATH']
 
-file_name_requestted = os.listdir(DOWNLOAD_PATH)
+file_name_requestted = []
+file_name_download = os.listdir(DOWNLOAD_PATH)
 
 def getFile(url):
     os.system('"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe" ' + url)
@@ -33,6 +34,11 @@ def checkFileInQueue(file_name):
         return False
     else:
         return True
+def checkFileDownload(file_name):
+    if file_name in file_name_download:
+        return False
+    else:
+        return True        
 def getFileName(url):
     regex = r'[^\/]+\_\d+\.htm$'
     item = re.findall(regex,url)[0]
@@ -54,38 +60,41 @@ def getLink():
     global num_link_got
     global file_name_requestted
     global DOWNLOAD_PATH
+    global file_name_download
     url = request.json['url']
     file_name = getFileName(url)
 
     header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36'}    
 
-    try:    
-        res = requests.get(url,headers=header)
-        soup = BeautifulSoup(res.text,'lxml')
-        link = soup.find('a',class_='download-button')['href']
-        if checkFileInQueue(file_name + '.zip'):
-            file_name_requestted.append(file_name)
-            getFile(link)
-        path = DOWNLOAD_PATH + file_name + '.zip'
-        result = 'localhost:5000/download-zip?filename' + file_name
-        timeout = time.time() + 60*3 #3 min
-        while True:
-            if time.time() > timeout:
-                app.logger.error('Can\'t get file')
-                abort(404)
-            if checkFileExist(path):
-                break
-        file_stats = os.stat(path)
-        size = file_stats.st_size
-        num_link_got = num_link_got + 1
-        app.logger.info('Number link got : {}'.format(num_link_got))
+    # try:    
+    res = requests.get(url,headers=header)
+    soup = BeautifulSoup(res.text,'lxml')
+    link = soup.find('a',class_='download-button')['href']
+    if checkFileInQueue(file_name) and checkFileDownload(file_name + '.zip'):
+        file_name_requestted.append(file_name)
+        getFile(link)
+    path = DOWNLOAD_PATH + file_name + '.zip'
+    result = 'localhost:5000/download-zip?filename' + file_name
+    timeout = time.time() + 60*3 #3 min
+    while True:
+        if time.time() > timeout:
+            app.logger.error('Can\'t get file')
+            abort(404)
+        if checkFileExist(path):
+            file_name_download = os.listdir(DOWNLOAD_PATH)
+            break
+    file_stats = os.stat(path)
+    size = file_stats.st_size
+    num_link_got = num_link_got + 1
+    app.logger.info('Number link got : {}'.format(num_link_got))
+    if file_name in file_name_requestted:
         file_name_requestted.remove(file_name)
-        return jsonify(url=result,size=size)
-    except Exception as err:
-        num_link_got = 0
-        # app.logger.info('Number link got : {} , Number link faild : {}'.format(num_link_got,num_link_faild))
-        app.logger.error('Get link Error')
-        abort(404)
+    return jsonify(url=result,size=size)
+    # except Exception as err:
+    #     num_link_got = 0
+    #     # app.logger.info('Number link got : {} , Number link faild : {}'.format(num_link_got,num_link_faild))
+    #     app.logger.error('Get link Error')
+    #     abort(404)
     return 'ERROR TRY AGAIN'
 
 @app.route('/download-zip')
