@@ -1,10 +1,13 @@
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort , send_file
 import requests
 from bs4 import BeautifulSoup
 import logging
 import time
 import os
 import re
+import zipfile
+import io
+import pathlib
 
 app = Flask(__name__)
 
@@ -63,11 +66,16 @@ def getLink():
         if checkFileInQueue(file_name):
             file_name_requestted.append(file_name)
             getFile(link)
-        result = DOWNLOAD_PATH + file_name + '.zip'
+        path = DOWNLOAD_PATH + file_name + '.zip'
+        result = 'localhost:5000/download-zip?filename' + file_name
+        timeout = time.time() + 60*3 #3 min
         while True:
-            if checkFileExist(result):
+            if time.time() > timeout:
+                app.logger.error('Can\'t get file')
+                abort(404)
+            if checkFileExist(path):
                 break
-        file_stats = os.stat(result)
+        file_stats = os.stat(path)
         size = file_stats.st_size
         num_link_got = num_link_got + 1
         app.logger.info('Number link got : {}'.format(num_link_got))
@@ -80,7 +88,22 @@ def getLink():
         abort(404)
     return 'ERROR TRY AGAIN'
 
+@app.route('/download-zip')
+def request_zip():
+    global DOWNLOAD_PATH
+    file_name = request.args.get('filename')
+    base_path = pathlib.Path(DOWNLOAD_PATH + file_name + '.zip')
+    data = io.BytesIO()
 
+    with zipfile.ZipFile(data, mode='w') as z:
+        z.write(base_path,file_name+'.zip')
+    data.seek(0)
+    return send_file(
+        data,
+        mimetype='application/zip',
+        as_attachment=True,
+        attachment_filename='download.zip'
+    )
 
 if __name__ == '__main__':
     app.run(host=app.config['MAIN_IP'])

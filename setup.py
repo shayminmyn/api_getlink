@@ -6,3 +6,6 @@ logging
 time
 re
 os
+zipfile
+io
+pathlib
